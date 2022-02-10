@@ -21,7 +21,7 @@ use Psr\Http\Message\UriInterface;
  *
  * @internal this class should not be used outside of the API Client, it is not part of the BC promise
  */
-final class HttpClientConfigurator
+class HttpClientConfigurator
 {
     /**
      * @var string

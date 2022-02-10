@@ -14,7 +14,7 @@ use Pnz\MattermostClient\Model\User\UserStatus;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
-final class UsersApi extends HttpApi
+class UsersApi extends HttpApi
 {
     /**
      * @param string $loginId  The login Id

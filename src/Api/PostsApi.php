@@ -9,7 +9,7 @@ use Pnz\MattermostClient\Model\Post\Post;
 use Pnz\MattermostClient\Model\Status;
 use Psr\Http\Message\ResponseInterface;
 
-final class PostsApi extends HttpApi
+class PostsApi extends HttpApi
 {
     /**
      * Create a post. Required parameters: 'channel_id', 'message'.

@@ -14,7 +14,7 @@ use Pnz\MattermostClient\Model\Team\Teams;
 use Pnz\MattermostClient\Model\Team\TeamStats;
 use Psr\Http\Message\ResponseInterface;
 
-final class TeamsApi extends HttpApi
+class TeamsApi extends HttpApi
 {
     /**
      * Returns an team by its ID.
