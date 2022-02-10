@@ -1,16 +1,14 @@
 {
-    "name": "pnz/mattermost-client",
+    "name": "mozkomor05/mattermost-client",
     "description": "Mattermost APi Client for PHP",
     "license": "MIT",
     "type": "library",
     "keywords": ["api", "mattermost"],
-    "authors": [
-        {
-            "name": "Emanuele Panzeri - ThePanz",
-            "email": "thepaz@gmail.com",
-            "role": "Developer"
-        }
-    ],
+    "authors": [{
+        "name": "Emanuele Panzeri - ThePanz",
+        "email": "thepaz@gmail.com",
+        "role": "Developer"
+    }],
     "require": {
         "ext-json": "*",
         "php": "^7.1",
@@ -50,7 +48,7 @@
         }
     },
     "scripts": {
-        "ci": ["@phpcs", "@phpstan", "@test-ci" ],
+        "ci": ["@phpcs", "@phpstan", "@test-ci"],
         "phpstan": "vendor/bin/phpstan analyze --level=7 src/ tests/",
         "phpcs": "vendor/bin/php-cs-fixer fix --dry-run --verbose --ansi",
         "phpcs-install": "curl -L https://cs.symfony.com/download/php-cs-fixer-v2.phar -o vendor/bin/php-cs-fixer && chmod u+x vendor/bin/php-cs-fixer",
