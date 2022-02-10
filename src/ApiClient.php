@@ -16,7 +16,7 @@ use Pnz\MattermostClient\Api\UsersApi;
 use Pnz\MattermostClient\Hydrator\Hydrator;
 use Pnz\MattermostClient\Hydrator\ModelHydrator;
 
-final class ApiClient
+class ApiClient
 {
     /**
      * @var HttpClient
