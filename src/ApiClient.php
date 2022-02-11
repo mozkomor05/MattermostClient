@@ -21,17 +21,17 @@ class ApiClient
     /**
      * @var HttpClient
      */
-    private $httpClient;
+    protected $httpClient;
 
     /**
      * @var Hydrator
      */
-    private $hydrator;
+    protected $hydrator;
 
     /**
      * @var RequestFactory
      */
-    private $requestFactory;
+    protected $requestFactory;
 
     /**
      * Construct an ApiClient instance.
