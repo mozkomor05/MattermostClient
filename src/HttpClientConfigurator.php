@@ -8,20 +8,19 @@ use Http\Client\Common\Plugin;
 use Http\Client\Common\PluginClient;
 use Http\Client\HttpClient;
 use Http\Discovery\HttpClientDiscovery;
-use Http\Discovery\Psr17FactoryDiscovery;
+use Http\Discovery\MessageFactoryDiscovery;
+use Http\Discovery\UriFactoryDiscovery;
 use Http\Message\Authentication;
-use Pnz\MattermostClient\Authentication\MattermostAuthentication;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\UriFactoryInterface;
-use Psr\Http\Message\UriInterface;
+use Http\Message\RequestFactory;
+use Http\Message\UriFactory;
+use Pnz\MattermostClient\Plugin\MattermostLoginPlugin;
 
 /**
  * Configure an HTTP client.
  *
  * @internal this class should not be used outside of the API Client, it is not part of the BC promise
  */
-class HttpClientConfigurator
+final class HttpClientConfigurator
 {
     /**
      * @var string
@@ -49,19 +48,14 @@ class HttpClientConfigurator
     private $httpClient;
 
     /**
-     * @var UriFactoryInterface
+     * @var UriFactory
      */
     private $uriFactory;
 
     /**
-     * @var RequestFactoryInterface
+     * @var RequestFactory
      */
     private $requestFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
 
     /**
      * @var Plugin[]
@@ -73,41 +67,50 @@ class HttpClientConfigurator
      */
     private $appendPlugins = [];
 
-    public function __construct(
-        HttpClient $httpClient = null,
-        UriFactoryInterface $uriFactory = null,
-        RequestFactoryInterface $requestFactory = null,
-        StreamFactoryInterface $streamFactory = null
-    ) {
+    /**
+     * @param HttpClient|null     $httpClient
+     * @param UriFactory|null     $uriFactory
+     * @param RequestFactory|null $requestFactory
+     */
+    public function __construct(HttpClient $httpClient = null, UriFactory $uriFactory = null, RequestFactory $requestFactory = null)
+    {
         $this->httpClient = $httpClient ?? HttpClientDiscovery::find();
-        $this->uriFactory = $uriFactory ?? Psr17FactoryDiscovery::findUrlFactory();
-        $this->requestFactory = $requestFactory ?? Psr17FactoryDiscovery::findRequestFactory();
-        $this->streamFactory = $streamFactory ?? Psr17FactoryDiscovery::findStreamFactory();
+        $this->uriFactory = $uriFactory ?? UriFactoryDiscovery::find();
+        $this->requestFactory = $requestFactory ?? MessageFactoryDiscovery::find();
     }
 
+    /**
+     * @return HttpClient
+     */
     public function createConfiguredClient(): HttpClient
     {
         if (empty($this->endpoint)) {
             throw new \InvalidArgumentException('Unable to configure the client, no API Endpoint provided');
         }
 
-        if (empty($this->loginId) || empty($this->password)) {
-            throw new \InvalidArgumentException('Unable to configure the client, no LoginId or Password provided');
-        }
-
-        $baseUri = $this->uriFactory->createUri($this->endpoint);
         $plugins = $this->prependPlugins;
+        $plugins[] = new Plugin\BaseUriPlugin($this->uriFactory->createUri($this->endpoint));
+        $plugins[] = new Plugin\HeaderDefaultsPlugin([
+            'User-Agent' => 'thePanz/MattermostClient (https://github.com/thePanz/MattermostClient)',
+        ]);
 
-        $plugins[] = new Plugin\BaseUriPlugin($baseUri);
-        $plugins[] = new Plugin\AuthenticationPlugin($this->createAuthentication($baseUri));
+        if (null !== $this->token) {
+            $plugins[] = new Plugin\AuthenticationPlugin(new Authentication\Bearer($this->token));
+        } elseif (!empty($this->loginId) && (!empty($this->password))) {
+            $plugins[] = new MattermostLoginPlugin($this->loginId, $this->password, $this->requestFactory);
+        } else {
+            throw new \InvalidArgumentException('Unable to configure the client, no Token or LoginId/Password provided');
+        }
 
         return new PluginClient($this->httpClient, array_merge($plugins, $this->appendPlugins));
     }
 
     /**
+     * @param string $endpoint
+     *
      * @return HttpClientConfigurator
      */
-    public function setEndpoint(string $endpoint): self
+    public function setEndpoint(string $endpoint): HttpClientConfigurator
     {
         $this->endpoint = $endpoint;
 
@@ -115,11 +118,28 @@ class HttpClientConfigurator
     }
 
     /**
-     * Set the LoginId/password to be used during the authentication.
+     * Configure the authentication token, it will skip the login_id/password auto-authentication.
+     *
+     * @param string $token
      *
      * @return HttpClientConfigurator
      */
-    public function setCredentials(string $loginId, string $password): self
+    public function setToken(string $token): HttpClientConfigurator
+    {
+        $this->token = $token;
+
+        return $this;
+    }
+
+    /**
+     * Set the LoginId/password to be used during the authentication.
+     *
+     * @param string $loginId
+     * @param string $password
+     *
+     * @return HttpClientConfigurator
+     */
+    public function setCredentials(string $loginId, string $password): HttpClientConfigurator
     {
         if (empty($loginId) || empty($password)) {
             throw new \InvalidArgumentException('LoginId and Password cannot be empty');
@@ -131,7 +151,12 @@ class HttpClientConfigurator
         return $this;
     }
 
-    public function appendPlugin(Plugin ...$plugin): self
+    /**
+     * @param Plugin|Plugin[] ...$plugin
+     *
+     * @return HttpClientConfigurator
+     */
+    public function appendPlugin(Plugin ...$plugin): HttpClientConfigurator
     {
         foreach ($plugin as $p) {
             $this->appendPlugins[] = $p;
@@ -140,7 +165,12 @@ class HttpClientConfigurator
         return $this;
     }
 
-    public function prependPlugin(Plugin ...$plugin): self
+    /**
+     * @param Plugin|Plugin[] ...$plugin
+     *
+     * @return HttpClientConfigurator
+     */
+    public function prependPlugin(Plugin ...$plugin): HttpClientConfigurator
     {
         $plugin = array_reverse($plugin);
         foreach ($plugin as $p) {
@@ -148,14 +178,5 @@ class HttpClientConfigurator
         }
 
         return $this;
-    }
-
-    private function createAuthentication(UriInterface $baseUri): MattermostAuthentication
-    {
-        $authClient = new PluginClient($this->httpClient, array_merge($this->prependPlugins, [
-            new Plugin\BaseUriPlugin($baseUri),
-        ]));
-
-        return new MattermostAuthentication($this->loginId, $this->password, $authClient, $this->requestFactory, $this->streamFactory);
     }
 }
